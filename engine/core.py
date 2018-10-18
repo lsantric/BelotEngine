@@ -60,7 +60,7 @@ class Game(object):
         self.states["on_table"] = np.array([0, 0, 0, 0])
 
     def deal_cards(self):
-        cards = list(range(1, 33))
+        cards = [i for i in range(1, 36) if i not in (9, 18, 27)]
         random.shuffle(cards)
 
         for i, player in enumerate(self.players):
