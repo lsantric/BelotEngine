@@ -41,24 +41,20 @@ def cards_to_points(cards, card_colors, adut):
             sum([adut_point_map[card] for i, card in enumerate(cards) if card_colors[i] == adut]))
 
 
-def cards_breakdwon(cards):
-    pass
-
-
-def printCard(cards):
-    ludiloKarte = []
+def print_card(cards):
+    ludilo_karte = []
     for i in cards:
         num = i % 9
-        bojaNum = i // 9
-        if bojaNum == 0:
+        boja_num = i // 9
+        if boja_num == 0:
             boja = 'tref'
-        elif bojaNum == 1:
+        elif boja_num == 1:
             boja = 'herc'
-        elif bojaNum == 2:
+        elif boja_num == 2:
             boja = 'karo'
         else:
             boja = 'pik'
 
-        ludiloKarte.append((symbolic_map[num], boja))
+        ludilo_karte.append((symbolic_map[num], boja))
 
-    return ludiloKarte
+    return ludilo_karte

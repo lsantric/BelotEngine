@@ -2,7 +2,8 @@ import random
 import numpy as np
 
 from agents import human
-from engine.cards import cards_to_points, printCard
+from engine.cards import cards_to_points
+from gui.render import Renderer
 
 
 class Game(object):
@@ -11,6 +12,7 @@ class Game(object):
     def __init__(self, players, states=None):
 
         self.players = players
+        self.renderer = Renderer()
 
         # Enumerate players and fix their position on the table
         for i, player in enumerate(players):
@@ -28,10 +30,12 @@ class Game(object):
             }
 
     def play_round(self, round_id):
+
         # Throw cards
         for i in range(self.states["first_player"], self.states["first_player"] + 4):
+            self.renderer.render(self.states, self.players[i % 4].states)
             self.states["on_table"][i % 4] = self.players[i % 4].play_card(self.states)
-            #self.states["on_table"] = np.hstack((self.states["on_table"], self.players[i % 4].play_card(self.states)))
+            self.renderer.render(self.states, self.players[i % 4].states)
 
         # Infer played card color and type
         on_table_colors = self.states["on_table"] // 9
@@ -39,7 +43,7 @@ class Game(object):
 
         dominant_color = on_table_colors[self.states["first_player"]]
 
-        # Adjust car strength multiplers
+        # Adjust car strength multipliers
         on_table_strength = on_table_cards.copy()
         on_table_strength[on_table_colors == dominant_color] += 10
         on_table_strength[on_table_colors == self.states["adut"]] += 20
@@ -65,9 +69,6 @@ class Game(object):
 
         for i, player in enumerate(self.players):
             player.states["hand"] = cards[8 * i: 8 * (i + 1)]
-            print("Nakon djeljanja", player.states["hand"])
-
-
 
     def play_game(self):
         self.deal_cards()
@@ -105,7 +106,6 @@ class Player(object):
             max_adut = 0
 
         if len(of_dominant_color) != 0:
-            your_max = max(of_dominant_color % 9)
             if max_adut > 0:
                 return of_dominant_color
             elif len(of_dominant_color[of_dominant_color > max_dominant]) == 0:
@@ -118,7 +118,7 @@ class Player(object):
             else:
                 return of_adut
 
-        return self.states["hand"]
+        return hand
 
     def play_card(self, game_states):
         raise NotImplementedError
