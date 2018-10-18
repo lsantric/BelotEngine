@@ -1,0 +1,12 @@
+# OSX
+.DS_STORE
+
+# PyCharm
+.idea/
+
+# Python
+*.pyc
+
+# Cython compiled artifacts
+*.c
+*.so
