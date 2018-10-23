@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from gui.layout import hand_cards, table_cards
+from belot.gui.layout import hand_cards, table_cards
 
 
 class Renderer(object):

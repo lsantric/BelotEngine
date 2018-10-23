@@ -1,18 +1,17 @@
 import random
 import numpy as np
 
-from agents import human
-from engine.cards import cards_to_points
-from gui.render import Renderer
+from belot.gui.render import Renderer
+from belot.engine.cards import cards_to_points
 
 
 class Game(object):
-    """Game class describes belot dynamics and internal states"""
+    """Game class describes belot dynamics, constraints and internal states"""
 
-    def __init__(self, players, states=None):
+    def __init__(self, players, states=None, render=False):
 
         self.players = players
-        self.renderer = Renderer()
+        self.renderer = Renderer() if render else None
 
         # Enumerate players and fix their position on the table
         for i, player in enumerate(players):
@@ -33,9 +32,13 @@ class Game(object):
 
         # Throw cards
         for i in range(self.states["first_player"], self.states["first_player"] + 4):
-            self.renderer.render(self.states, self.players[i % 4].states)
+            if self.renderer:
+                self.renderer.render(self.states, self.players[i % 4].states)
+
             self.states["on_table"][i % 4] = self.players[i % 4].play_card(self.states)
-            self.renderer.render(self.states, self.players[i % 4].states)
+
+            if self.renderer:
+                self.renderer.render(self.states, self.players[i % 4].states)
 
         # Infer played card color and type
         on_table_colors = self.states["on_table"] // 9
@@ -89,12 +92,16 @@ class Player(object):
             }
 
     def legal_moves(self, game_state):
+
         hand = np.array(self.states["hand"])
-        if len(game_state["on_table"]) == 0:
+
+        if np.sum(game_state["on_table"]) == 0:
             return hand
+
         dominant_color = game_state["on_table"][game_state["first_player"]]
         of_dominant_color = hand[hand // 9 == dominant_color]
         of_adut = hand[hand // 9 == game_state["adut"]]
+
         if len(game_state["on_table"][game_state["on_table"] // 9 == dominant_color]) > 0:
             max_dominant = np.max(game_state["on_table"][game_state["on_table"] // 9 == dominant_color])
         else:
@@ -122,11 +129,3 @@ class Player(object):
 
     def play_card(self, game_states):
         raise NotImplementedError
-
-
-if __name__ == "__main__":
-    a = Game([human.Human(), human.Human(), human.Human(), human.Human()])
-    import time
-    start = time.time()
-    a.play_game()
-    print(time.time() - start)
