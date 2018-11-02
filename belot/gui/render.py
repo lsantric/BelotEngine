@@ -1,6 +1,4 @@
 import cv2
-import numpy as np
-
 from belot.gui.layout import hand_cards, table_cards
 
 
@@ -44,12 +42,3 @@ class Renderer(object):
 
         cv2.imshow("BelotENGINE", canvas)
         cv2.waitKey(0)
-
-
-if __name__ == "__main__":
-    rnd = Renderer()
-    rnd.render({
-        "on_table": np.array([0, 0, 0, 0])
-    },{
-        "hand": list(range(8))
-    })
