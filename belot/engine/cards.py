@@ -1,3 +1,5 @@
+import numpy as np
+
 point_map = {
     0: 0,
     1: 0,
@@ -41,10 +43,11 @@ def cid2t(card_ids):
 
 def cid2r(card_ids, dominant_color, adut):
     """Card ids by rank"""
-    card_ranks = card_ids.copy()
-    card_suits = cid2s(card_ranks)
+    card_ranks = cid2t(card_ids)
+    card_suits = cid2s(card_ids)
+    card_types = cid2t(card_ids)
     card_ranks[card_suits == dominant_color] += 10
     card_ranks[card_suits == adut] += 20
-    card_ranks[card_ranks == 2] += 20
-    card_ranks[card_ranks == 3] += 20
+    card_ranks[np.logical_and(card_types == 3, card_suits == adut)] += 20
+    card_ranks[np.logical_and(card_types == 4, card_suits == adut)] += 20
     return card_ranks

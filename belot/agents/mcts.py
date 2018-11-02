@@ -17,18 +17,21 @@ class MCTS(core.Player):
 
     def play_card(self, game_states):
 
-        start = time.time()
+        if len(self.states["hand"]) == 1:
+            chosen_move = self.states["hand"][0]
+        else:
+            start = time.time()
+            while (time.time() - start) < self.time_limit:
+                self.crawler.states = self.copy_states()
 
-        while (time.time() - start) < self.time_limit:
-            self.crawler.states = self.copy_states()
+                bots = [Random(i) for i in range(4) if i != self.states["idx"]]
+                bots.insert(self.states["idx"], self.crawler)
 
-            bots = [Random(i) for i in range(4) if i != self.states["idx"]]
-            bots.insert(self.states["idx"], self.crawler)
+                game = core.Game(bots, states=self.copy_states(game_states))
+                self.gst.recursive_update(game.play_game()[self.states["idx"] % 2])
 
-            game = core.Game(bots, states=self.copy_states(game_states))
-            self.gst.recursive_update(game.play_game()[self.states["idx"] % 2])
+            chosen_move = self.gst.state_transition()
 
-        chosen_move = self.gst.state_transition()
         self.states["hand"].pop(self.states["hand"].index(chosen_move))
 
         return chosen_move
@@ -109,5 +112,5 @@ class GameState(object):
 
 if __name__ == "__main__":
 
-    trnmt = core.Tournament(iters=100)
+    trnmt = core.Tournament(iters=500)
     trnmt.showdown([MCTS, Random, Random, Random])
