@@ -11,10 +11,13 @@ class Tournament(object):
         self.iters = iters
 
     def showdown(self, players):
+        i = 0
         results = []
         for i in range(self.iters):
             game = Game(players=[player(idx=i) for i, player in enumerate(players)], render=False)
             results.append(game.play_game())
+            i = i + 1
+            print(i)
 
         scores1, scores2 = zip(*results)
         print("Team 1 avg scores:", sum(scores1) / self.iters)
@@ -100,7 +103,6 @@ class Game(object):
 
     def play_game(self):
         self.deal_cards()
-        print([p.states["hand"] for p in self.players])
 
         while self.states["round"] < 8:
             self.play_round()
@@ -205,5 +207,5 @@ if __name__ == "__main__":
 
     from belot.agents.lib import Random
 
-    trnmt = Tournament(iters=100)
+    trnmt = Tournament(iters=50)
     trnmt.showdown([Random, Random, Random, Random])

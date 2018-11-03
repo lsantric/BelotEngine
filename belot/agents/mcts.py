@@ -112,5 +112,5 @@ class GameState(object):
 
 if __name__ == "__main__":
 
-    trnmt = core.Tournament(iters=500)
+    trnmt = core.Tournament(iters=200)
     trnmt.showdown([MCTS, Random, Random, Random])
