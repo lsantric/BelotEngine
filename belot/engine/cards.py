@@ -33,7 +33,9 @@ def cid2p(card_types, card_suits, adut):
 
 def cid2s(card_ids):
     """Card ids by suit"""
-    return card_ids // 9
+    ids = card_ids // 9
+    ids[card_ids != 0] += 1
+    return ids
 
 
 def cid2t(card_ids):
@@ -41,12 +43,12 @@ def cid2t(card_ids):
     return card_ids % 9
 
 
-def cid2r(card_ids, dominant_color, adut):
+def cid2r(card_ids, dominant_suit, adut):
     """Card ids by rank"""
     card_ranks = cid2t(card_ids)
     card_suits = cid2s(card_ids)
     card_types = cid2t(card_ids)
-    card_ranks[card_suits == dominant_color] += 10
+    card_ranks[card_suits == dominant_suit] += 10
     card_ranks[card_suits == adut] += 20
     card_ranks[np.logical_and(card_types == 3, card_suits == adut)] += 20
     card_ranks[np.logical_and(card_types == 4, card_suits == adut)] += 20

@@ -1,3 +1,4 @@
+import time
 import random
 import numpy as np
 
@@ -10,14 +11,15 @@ class Tournament(object):
     def __init__(self, iters=10):
         self.iters = iters
 
-    def showdown(self, players):
-        i = 0
+    def showdown(self, players, render=False):
         results = []
+        start = time.time()
         for i in range(self.iters):
-            game = Game(players=[player(idx=i) for i, player in enumerate(players)], render=False)
+            game = Game(players=[player(idx=i) for i, player in enumerate(players)], render=render)
             results.append(game.play_game())
-            i = i + 1
             print(i)
+
+        print("It took {} s per game".format((time.time() - start) / self.iters))
 
         scores1, scores2 = zip(*results)
         print("Team 1 avg scores:", sum(scores1) / self.iters)
@@ -32,17 +34,18 @@ class Game(object):
         self.players = players
         self.renderer = Renderer() if render else None
 
+        self.states = {
+            "round": 0,
+            "on_table": np.array([0, 0, 0, 0]),
+            "played": set(),
+            "blacklist": [set() for _ in range(4)],
+            "adut": 1,
+            "first_player": 0,
+            "scores": [0, 0]
+        }
+
         if states:
-            self.states = states
-        else:
-            self.states = {
-                "round": 0,
-                "on_table": np.array([0, 0, 0, 0]),
-                "played": set(),
-                "adut": 0,
-                "first_player": 0,
-                "scores": [0, 0]
-            }
+            self.states.update(states)
 
     def play_round(self):
 
@@ -94,8 +97,7 @@ class Game(object):
         # Deal remaining cards
         for player in self.players:
             while len(player.states["hand"]) < hand_card_num:
-                if cards[0] not in player.states["blacklist"]:
-                    player.states["hand"].append(cards.pop(0))
+                player.states["hand"].append(cards.pop(0))
 
         assert len(cards) == 0
         for player in self.players:
@@ -121,75 +123,55 @@ class Game(object):
 
 class Player(object):
 
-    def __init__(self, idx, states=None, render=None):
+    def __init__(self, idx, states=None, renderer=None):
+
+        self.states = {
+            "idx": idx,
+            "hand": []
+        }
 
         if states:
-            self.states = states
-        else:
-            self.states = {
-                "idx": idx,
-                "hand": [],
-                "blacklist": set()
-            }
+            self.states.update(states)
 
     def legal_moves(self, game_state):
 
-        self.states["blacklist"].update(np.arange(0, 36).tolist())
+        in_hand = np.array(self.states["hand"])
+        on_table = game_state["on_table"]
 
-        hand = np.array(self.states["hand"])
-        hand_suits = cid2s(hand)
-        on_table_suits = cid2s(game_state["on_table"])
+        if game_state["first_player"] == self.states["idx"]:
+            return in_hand
 
-        if np.sum(game_state["on_table"]) == 0:
-            return hand
+        in_hand_suits = cid2s(in_hand)
+        on_table_suits = cid2s(on_table)
 
-        dominant_suit = cid2s(game_state["on_table"])[game_state["first_player"]]
-        of_dominant_suit = hand[hand_suits == dominant_suit]
-        of_adut = hand[hand_suits == game_state["adut"]]
+        dominant_suit = on_table_suits[game_state["first_player"]]
+        adut_suit = game_state["adut"]
 
-        # Find strongest card of dominant suit on table
-        if len(game_state["on_table"][on_table_suits == dominant_suit]) > 0:
-            max_dominant = np.max(game_state["on_table"][on_table_suits == dominant_suit])
-        else:
-            max_dominant = 0
+        in_hand_dominant = in_hand[in_hand_suits == dominant_suit]
+        in_hand_adut = in_hand[in_hand_suits == adut_suit]
 
-        # Find strongest adut on table
-        if len(game_state["on_table"][np.logical_and(on_table_suits == game_state["adut"], on_table_suits != 0)]) > 0:
-            max_adut = np.max(game_state["on_table"][on_table_suits == game_state["adut"]])
-        else:
-            max_adut = 0
+        on_table_dominant = on_table[on_table_suits == dominant_suit]
+        on_table_adut = on_table[on_table_suits == adut_suit]
 
-        # Holding domainant suit cards?
-        if len(of_dominant_suit) > 0:
+        has_dominant = True if len(in_hand_dominant) else False
+        has_adut = True if len(in_hand_adut) else False
 
-            if max_adut > 0:
-                return of_dominant_suit
-            elif len(of_dominant_suit[of_dominant_suit > max_dominant]) == 0:
-                # No stronger cards to play
-                dominant_color_cards = np.arange(cid2t(max_dominant), 9) + dominant_suit * 9
-                self.states["blacklist"].update((dominant_color_cards[dominant_color_cards > max_dominant]).tolist())
-                return of_dominant_suit
+        is_game_sliced = True if len(on_table_adut) > 0 and dominant_suit != adut_suit else False
+
+        if has_dominant:
+            in_hand_max_dominant = np.max(cid2r(in_hand_dominant, dominant_suit, adut_suit))
+            on_table_max_dominant = np.max(cid2r(on_table_dominant, dominant_suit, adut_suit))
+            has_stronger_dominant = True if in_hand_max_dominant > on_table_max_dominant else False
+
+            if has_stronger_dominant and not is_game_sliced:
+                return in_hand_dominant[cid2r(in_hand_dominant, dominant_suit, adut_suit) > on_table_max_dominant]
             else:
-                # Have to play stronger cards (uberovanje)
-                return of_dominant_suit[of_dominant_suit > max_dominant]
-
-        # No dominant suit cards - blacklisting
-        self.states["blacklist"].update((np.arange(9) + dominant_suit * 9).tolist())
-
-        # Holding adut cards?
-        if len(of_adut) > 0:
-
-            if len(of_adut[of_adut > max_adut]) > 0:
-                # Have to play stronger cards (uberovanje)
-                return of_adut[of_adut > max_adut]
+                return in_hand_dominant
+        else:
+            if has_adut:
+                return in_hand_adut
             else:
-                # No stronger cards to play
-                return of_adut
-
-        # No adut cards - blacklisting
-        self.states["blacklist"].update((np.arange(9) + game_state["adut"] * 9).tolist())
-
-        return hand
+                return in_hand
 
     def play_card(self, game_states):
         raise NotImplementedError
@@ -207,5 +189,6 @@ if __name__ == "__main__":
 
     from belot.agents.lib import Random
 
-    trnmt = Tournament(iters=50)
+    trnmt = Tournament(iters=10)
     trnmt.showdown([Random, Random, Random, Random])
+

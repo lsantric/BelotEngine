@@ -1,5 +1,4 @@
 import random
-import time
 
 import belot.engine.core as core
 from belot.agents.lib import Random
@@ -7,10 +6,10 @@ from belot.agents.lib import Random
 
 class MCTS(core.Player):
 
-    def __init__(self, idx, time_limit=0.5):
+    def __init__(self, idx, num_limit=500):
         super().__init__(idx)
 
-        self.time_limit = time_limit
+        self.num_limit = num_limit
 
         self.gst = GameStateTree()
         self.crawler = MCTSCrawler(idx, self.gst)
@@ -20,11 +19,13 @@ class MCTS(core.Player):
         if len(self.states["hand"]) == 1:
             chosen_move = self.states["hand"][0]
         else:
-            start = time.time()
-            while (time.time() - start) < self.time_limit:
+            for n in range(self.num_limit):
                 self.crawler.states = self.copy_states()
 
-                bots = [Random(i) for i in range(4) if i != self.states["idx"]]
+                bots = [
+                    Random(i)
+                    for i in range(4) if i != self.states["idx"]
+                ]
                 bots.insert(self.states["idx"], self.crawler)
 
                 game = core.Game(bots, states=self.copy_states(game_states))
@@ -112,5 +113,5 @@ class GameState(object):
 
 if __name__ == "__main__":
 
-    trnmt = core.Tournament(iters=200)
-    trnmt.showdown([MCTS, Random, Random, Random])
+    trnmt = core.Tournament(iters=2000)
+    trnmt.showdown([MCTS, Random, Random, Random], render=False)

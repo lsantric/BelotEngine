@@ -2,7 +2,8 @@
 .DS_STORE
 
 # PyCharm
-.idea/*
+.idea
+.vscode
 
 # Python
 *.pyc
