@@ -10,11 +10,11 @@ class MCTS(core.Player):
         super().__init__(idx)
 
         self.num_limit = num_limit
-
-        self.gst = GameStateTree()
-        self.crawler = MCTSCrawler(idx, self.gst)
+        self.crawler = None
 
     def play_card(self, game_states):
+
+        self.crawler = MCTSCrawler(self.states["idx"])
 
         if len(self.states["hand"]) == 1:
             chosen_move = self.states["hand"][0]
@@ -23,15 +23,15 @@ class MCTS(core.Player):
                 self.crawler.states = self.copy_states()
 
                 bots = [
-                    Random(i)
+                    Random(i, states={"whitelist": game_states["whitelists"][i].copy()})
                     for i in range(4) if i != self.states["idx"]
                 ]
                 bots.insert(self.states["idx"], self.crawler)
-
                 game = core.Game(bots, states=self.copy_states(game_states))
-                self.gst.recursive_update(game.play_game()[self.states["idx"] % 2])
+                self.crawler.gst.recursive_update(game.play_game()[self.states["idx"] % 2])
 
-            chosen_move = self.gst.state_transition()
+            chosen_move = self.crawler.gst.state_transition()
+            assert chosen_move in self.legal_moves(game_states)
 
         self.states["hand"].pop(self.states["hand"].index(chosen_move))
 
@@ -40,15 +40,14 @@ class MCTS(core.Player):
 
 class MCTSCrawler(core.Player):
 
-    def __init__(self, idx, gst):
+    def __init__(self, idx):
         super().__init__(idx)
-        self.gst = gst
+        self.gst = GameStateTree()
+
+        self.gst.root = GameState(None, None)
+        self.gst.selected = self.gst.root
 
     def play_card(self, game_states):
-
-        if not self.gst.root:
-            self.gst.root = GameState(None, None)
-            self.gst.selected = self.gst.root
 
         # Make legal move at random
         legal_moves = self.legal_moves(game_states)
@@ -68,9 +67,11 @@ class GameStateTree(object):
         self.selected = None
 
     def state_transition(self):
-        self.root = max(self.root.next_states.values(), key=lambda x: x.avg_points)
+        best_move = max(self.root.next_states.values(), key=lambda x: x.avg_points).prev_move
+
+        self.root = GameState(None, None)
         self.selected = self.root
-        return self.root.prev_move
+        return best_move
 
     def recursive_update(self, points):
 
@@ -113,5 +114,5 @@ class GameState(object):
 
 if __name__ == "__main__":
 
-    trnmt = core.Tournament(iters=2000)
+    trnmt = core.Tournament(iters=1000)
     trnmt.showdown([MCTS, Random, Random, Random], render=False)

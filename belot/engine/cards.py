@@ -34,7 +34,7 @@ def cid2p(card_types, card_suits, adut):
 def cid2s(card_ids):
     """Card ids by suit"""
     ids = card_ids // 9
-    ids[card_ids != 0] += 1
+    ids[card_ids == 0] = -1
     return ids
 
 

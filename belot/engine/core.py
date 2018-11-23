@@ -4,6 +4,7 @@ import numpy as np
 
 from belot.gui.render import Renderer
 from belot.engine.cards import cid2p, cid2s, cid2r, cid2t
+from belot.agents.shuffling import CardConfigTree
 
 
 class Tournament(object):
@@ -38,10 +39,10 @@ class Game(object):
             "round": 0,
             "on_table": np.array([0, 0, 0, 0]),
             "played": set(),
-            "blacklist": [set() for _ in range(4)],
-            "adut": 1,
+            "adut": 0,
             "first_player": 0,
-            "scores": [0, 0]
+            "scores": [0, 0],
+            "whitelists": [player.states["whitelist"] for player in self.players]
         }
 
         if states:
@@ -50,7 +51,8 @@ class Game(object):
     def play_round(self):
 
         # Play cards
-        for i in range(self.states["first_player"], self.states["first_player"] + 4):
+        for i in range(self.states["first_player"] + np.sum(self.states["on_table"] != 0),
+                       self.states["first_player"] + np.sum(self.states["on_table"] != 0) + 4):
 
             # Render game state
             if self.renderer:
@@ -92,16 +94,18 @@ class Game(object):
         cards = list({i for i in range(36)} - {0, 9, 18, 27} - dealt_cards - set(self.states["played"]))
         random.shuffle(cards)
 
-        hand_card_num = 8 - len(self.states["played"]) // 4
+        cct = CardConfigTree(cards, players=self.players)
 
-        # Deal remaining cards
-        for player in self.players:
-            while len(player.states["hand"]) < hand_card_num:
-                player.states["hand"].append(cards.pop(0))
+        while cct.next():
+            pass
 
-        assert len(cards) == 0
+        card_configuration = cct.selected.deal_config
+
         for player in self.players:
-            assert len(player.states["hand"]) == hand_card_num
+            if not player.states["hand"]:
+                player.states["hand"] = card_configuration.pop(0)
+
+        assert True
 
     def play_game(self):
         self.deal_cards()
@@ -116,7 +120,7 @@ class Game(object):
         if not states:
             states = self.states
         return {
-            i: j if isinstance(j, (str, int, float)) else j.copy()
+            i: j if isinstance(j, (str, int, float)) else [k.copy() for k in j] if i == "whitelists" else j.copy()
             for i, j in states.items()
         }
 
@@ -127,7 +131,8 @@ class Player(object):
 
         self.states = {
             "idx": idx,
-            "hand": []
+            "hand": [],
+            "whitelist": {i for i in range(36)} - {0, 9, 18, 27}
         }
 
         if states:
@@ -166,11 +171,21 @@ class Player(object):
             if has_stronger_dominant and not is_game_sliced:
                 return in_hand_dominant[cid2r(in_hand_dominant, dominant_suit, adut_suit) > on_table_max_dominant]
             else:
+                if not is_game_sliced:
+                    all_dominant_ids = np.arange(9) + dominant_suit * 9
+                    self.states["whitelist"] -= set(
+                        all_dominant_ids[cid2r(all_dominant_ids, dominant_suit, adut_suit) > on_table_max_dominant]
+                    )
                 return in_hand_dominant
         else:
+            # No dominant suit - blacklisting
+            self.states["whitelist"] -= set(np.arange(9) + dominant_suit * 9)
+
             if has_adut:
                 return in_hand_adut
             else:
+                # No adut suit - blacklisting
+                self.states["whitelist"] -= set(np.arange(9) + game_state["adut"] * 9)
                 return in_hand
 
     def play_card(self, game_states):
