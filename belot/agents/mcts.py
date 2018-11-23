@@ -6,7 +6,7 @@ from belot.agents.lib import Random
 
 class MCTS(core.Player):
 
-    def __init__(self, idx, num_limit=500):
+    def __init__(self, idx, num_limit=100):
         super().__init__(idx)
 
         self.num_limit = num_limit
@@ -114,5 +114,5 @@ class GameState(object):
 
 if __name__ == "__main__":
 
-    trnmt = core.Tournament(iters=1000)
-    trnmt.showdown([MCTS, Random, Random, Random], render=False)
+    trnmt = core.Tournament(iters=300)
+    trnmt.showdown([MCTS, Random, Random, Random], show_stats=True, render=False)

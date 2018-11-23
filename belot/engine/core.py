@@ -2,6 +2,9 @@ import time
 import random
 import numpy as np
 
+import matplotlib.pyplot as plt
+import scipy.stats as scst
+
 from belot.gui.render import Renderer
 from belot.engine.cards import cid2p, cid2s, cid2r, cid2t
 from belot.agents.shuffling import CardConfigTree
@@ -12,7 +15,7 @@ class Tournament(object):
     def __init__(self, iters=10):
         self.iters = iters
 
-    def showdown(self, players, render=False):
+    def showdown(self, players, show_stats=False, render=False):
         results = []
         start = time.time()
         for i in range(self.iters):
@@ -25,6 +28,14 @@ class Tournament(object):
         scores1, scores2 = zip(*results)
         print("Team 1 avg scores:", sum(scores1) / self.iters)
         print("Team 2 avg scores:", sum(scores2) / self.iters)
+        print("95% error tolerance interval:", "+/- {}".format(1.96 * np.std(scores1) / np.sqrt(self.iters)))
+
+        if show_stats:
+            fig, ax = plt.subplots(1, 1)
+            x = np.linspace(0, 162, 1000)
+            ax.plot(x, scst.norm.pdf(x, np.mean(scores1), np.std(scores1) / np.sqrt(self.iters)))
+            ax.hist(scores1, bins=30, range=(0, 162), normed=True)
+            plt.show()
 
 
 class Game(object):
@@ -204,6 +215,6 @@ if __name__ == "__main__":
 
     from belot.agents.lib import Random
 
-    trnmt = Tournament(iters=10)
-    trnmt.showdown([Random, Random, Random, Random])
+    trnmt = Tournament(iters=100)
+    trnmt.showdown([Random, Random, Random, Random], show_stats=True)
 
