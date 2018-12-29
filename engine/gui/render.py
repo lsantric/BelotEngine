@@ -1,17 +1,17 @@
 import cv2
-from belot.gui.layout import hand_cards, table_cards
+from engine.gui.layout import hand_cards, table_cards
 
 
 class Renderer(object):
 
     def __init__(self):
-        background = cv2.imread("../gui/assets/table.jpg", cv2.IMREAD_ANYCOLOR)
+        background = cv2.imread("./engine/gui/assets/table.jpg", cv2.IMREAD_ANYCOLOR)
 
         card_width = int(background.shape[1] * (hand_cards[0][2] - hand_cards[0][0]))
         card_height = int(background.shape[1] * (hand_cards[0][2] - hand_cards[0][0]) / 0.655)
 
         self.resources = {
-            i: cv2.resize(cv2.imread("../gui/assets/{}.jpg".format(i), cv2.IMREAD_ANYCOLOR),
+            i: cv2.resize(cv2.imread("./engine/gui/assets/{}.jpg".format(i), cv2.IMREAD_ANYCOLOR),
                           (card_width, card_height),
                           interpolation=cv2.INTER_CUBIC)
             for i in range(36)
@@ -22,7 +22,7 @@ class Renderer(object):
         self.card_width = card_width
         self.card_height = card_height
 
-    def render(self, game_states, player_states):
+    def render(self, game_states, player_states, scores=None):
 
         canvas = self.resources["background"].copy()
 
@@ -39,6 +39,9 @@ class Renderer(object):
             x1 = int(hand_cards[i][0] * self.resources["background"].shape[1])
             x2 = int(hand_cards[i][0] * self.resources["background"].shape[1]) + self.card_width
             canvas[y1: y2, x1: x2] = self.resources[card]
+
+        if scores:
+            print(scores)
 
         cv2.imshow("BelotENGINE", canvas)
         cv2.waitKey(0)

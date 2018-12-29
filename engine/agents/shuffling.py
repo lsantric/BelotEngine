@@ -13,7 +13,14 @@ class CardConfigTree(object):
     def __init__(self, cards, players):
 
         self.players = [(i, player) for i, player in enumerate(players) if not player.states["hand"]]
-        self.root = CardNode(cards[:], [[] for player in players if not player.states["hand"]], None)
+
+        prioritized_cards = sorted(
+            cards,
+            key=lambda x: sum([1 for player in self.players if x in player[1].states["whitelist"]]),
+            reverse=False
+        )
+
+        self.root = CardNode(prioritized_cards[:], [[] for player in players if not player.states["hand"]], None)
         self.selected = self.root
 
         self.hand_card_num = len(cards) // len(self.players)
@@ -48,7 +55,7 @@ class CardConfigTree(object):
 
 if __name__ == "__main__":
 
-    from belot.engine.core import Player
+    from engine.core import Player
 
     players = [Player(i, {"whitelist": set(range(27))}) for i in range(3)]
     players[1].states["whitelist"] = {3, 7, 22, 9, 17, 12, 16, 19, 25}

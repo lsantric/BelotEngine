@@ -2,26 +2,32 @@ import time
 import random
 import numpy as np
 
+import multiprocessing as mp
+
 import matplotlib.pyplot as plt
 import scipy.stats as scst
 
-from belot.gui.render import Renderer
-from belot.engine.cards import cid2p, cid2s, cid2r, cid2t
-from belot.agents.shuffling import CardConfigTree
+from engine.gui.render import Renderer
+from engine.cards import cid2p, cid2s, cid2r, cid2t
+from engine.agents.shuffling import CardConfigTree
 
 
 class Tournament(object):
 
     def __init__(self, iters=10):
         self.iters = iters
+        self.render = False
 
-    def showdown(self, players, show_stats=False, render=False):
-        results = []
+    def showdown(self, players, show_stats=False, render=False, workers=1):
+
+        self.render = render
+
         start = time.time()
-        for i in range(self.iters):
-            game = Game(players=[player(idx=i) for i, player in enumerate(players)], render=render)
-            results.append(game.play_game())
-            print(i)
+        if workers > 1:
+            with mp.Pool(processes=workers) as pool:
+                results = pool.map(self.play_game, [players] * self.iters)
+        else:
+            results = [self.play_game(players) for _ in range(self.iters)]
 
         print("It took {} s per game".format((time.time() - start) / self.iters))
 
@@ -34,8 +40,12 @@ class Tournament(object):
             fig, ax = plt.subplots(1, 1)
             x = np.linspace(0, 162, 1000)
             ax.plot(x, scst.norm.pdf(x, np.mean(scores1), np.std(scores1) / np.sqrt(self.iters)))
-            ax.hist(scores1, bins=30, range=(0, 162), normed=True)
+            ax.hist(scores1, bins=30, range=(0, 162), density=True)
             plt.show()
+
+    def play_game(self, players):
+        game = Game(players=[player(idx=j) for j, player in enumerate(players)], render=self.render)
+        return game.play_game()
 
 
 class Game(object):
@@ -213,8 +223,7 @@ class Player(object):
 
 if __name__ == "__main__":
 
-    from belot.agents.lib import Random
+    from engine.agents.lib import Random
 
-    trnmt = Tournament(iters=100)
-    trnmt.showdown([Random, Random, Random, Random], show_stats=True)
-
+    trnmt = Tournament(iters=50)
+    trnmt.showdown([Random, Random, Random, Random], show_stats=False, render=False)

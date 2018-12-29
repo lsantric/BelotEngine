@@ -1,5 +1,5 @@
 import random
-import belot.engine.core as core
+import engine.core as core
 
 
 class Human(core.Player):
