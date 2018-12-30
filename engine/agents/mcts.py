@@ -1,6 +1,5 @@
 import numpy as np
 
-from engine.gui.render import Renderer
 import matplotlib.pyplot as plt
 
 import engine.core as core
@@ -9,12 +8,13 @@ from engine.agents.lib import Random
 
 class MCTS(core.Player):
 
-    def __init__(self, idx, num_limit=400):
+    def __init__(self, idx, num_limit=2400, show_estimates=False):
         super().__init__(idx)
+
+        self.show_estimates = show_estimates
 
         self.num_limit = num_limit
         self.crawler = None
-        self.renderer = Renderer()
 
     def play_card(self, game_states):
 
@@ -35,14 +35,13 @@ class MCTS(core.Player):
                 game = core.Game(bots, states=self.copy_states(game_states), render=False)
                 self.crawler.gst.recursive_update(game.play_game()[self.states["idx"] % 2])
 
-            #print(self.crawler.gst.selected.next_states.values())
-            #for move in self.crawler.gst.selected.next_states.values():
-            #    plt.plot(list(range(len(move.avg_history))), move.avg_history)
-            #plt.show()
 
-            #self.renderer.render(game_states, self.states, [(cid2simb(state.prev_move), state.avg_points) for state in self.crawler.gst.root.next_states.values()])
+            if self.show_estimates:
+                for move in self.crawler.gst.selected.next_states.values():
+                    plt.plot(list(range(len(move.avg_history))), move.avg_history)
+                plt.show()
+
             chosen_move = self.crawler.gst.state_transition()
-            #print("CHOSEN MOVE: {}".format(chosen_move))
 
         assert chosen_move in legal_moves
 
